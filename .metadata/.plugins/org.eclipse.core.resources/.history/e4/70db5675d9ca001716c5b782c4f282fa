@@ -1,0 +1,45 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/dispatch.h>
+#include <sys/mman.h>
+
+struct pid_data{
+	pthread_mutex_t pid_mutex;
+	pid_t pid;
+};
+
+struct _msg_info{
+	int t1;
+	int t2;
+};
+
+int main(int argc, char *argv[]) {
+	printf("Creating memloc\n");
+
+	int file_desc = shm_open("/sharedpid", O_RDWR|O_CREAT,S_IRWXU);
+	ftruncate(file_desc, sizeof(struct pid_data));
+	void * mmap_test = mmap(0, sizeof(struct pid_data),PROT_READ|PROT_WRITE, MAP_SHARED, file_desc, 0);
+	struct pid_data * nmb = mmap_test;
+
+	pthread_mutexattr_t myattr;
+	pthread_mutexattr_init(&myattr);
+	pthread_mutexattr_setpshared(&myattr, PTHREAD_PROCESS_SHARED);
+	pthread_mutex_init(&nmb->pid_mutex, &myattr );
+
+	nmb->pid = 86;
+
+	int ch_id = ChannelCreate(0);
+
+	struct _msg_info buffer;
+	while(1) {
+		int msg_id = MsgReceive(ch_id,&buffer,sizeof(struct _msg_info), NULL);
+		MsgReply(msg_id, EOK, , );
+	}
+
+
+	return EXIT_SUCCESS;
+}

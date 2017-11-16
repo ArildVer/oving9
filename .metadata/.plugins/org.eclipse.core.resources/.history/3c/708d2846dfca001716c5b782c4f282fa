@@ -1,0 +1,38 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/dispatch.h>
+#include <sys/mman.h>
+
+struct pid_data{
+	pthread_mutex_t pid_mutex;
+	pid_t pid;
+};
+
+struct test{
+	int t1;
+	int t2;
+};
+
+int main(int argc, char *argv[]) {
+	printf("Client\n");
+
+	int file_desc = shm_open("/sharedpid", O_RDWR,S_IRWXU);
+	void * mmap_test = mmap(0, sizeof(struct pid_data),PROT_READ|PROT_WRITE, MAP_SHARED, file_desc, 0);
+	struct pid_data * nmb = mmap_test;
+
+	printf("pid = %i\n", nmb->pid);
+
+	int ch_id = ConnectAttach(0, nmb->pid, 1, 0 ,0);
+	int msg = 2;
+	int buffer = 0;
+	int status = MsgSend(ch_id, &msg, sizeof(int), &buffer, sizeof(int));
+	ConnectDetach(ch_id);
+
+	printf("Status = %i, msg->t1 = %i\n", status, buffer);
+
+	return EXIT_SUCCESS;
+}
